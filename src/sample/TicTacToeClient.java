@@ -1,0 +1,219 @@
+package sample;
+
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.control.Cell;
+import javafx.scene.control.Label;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
+import javafx.stage.Stage;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
+
+public class TicTacToeClient extends Application implements TicTacToeConstants {
+
+    private boolean myTurn = false;
+
+    private char myToken = ' ';
+
+    private char otherToken = ' ';
+
+    private Cell[][] cell = new Cell[3][3];
+
+    private Label lblTitle = new Label();
+
+    private Label lblStatus = new Label();
+
+    private int rowSelected;
+    private int columnSelected;
+
+    private DataInputStream fromServer;
+    private DataOutputStream toServer;
+
+    private boolean continueToPlay = true;
+
+    private boolean waiting = true;
+
+    private String host = "localhost";
+
+    @Override
+    public void start(Stage stage) throws Exception {
+
+        GridPane pane = new GridPane();
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j <3; j++)
+                pane.add(cell[i][j] = new Cell(i, j), j, i);
+
+        BorderPane borderPane = new BorderPane();
+        borderPane.setTop(lblTitle);
+        borderPane.setCenter(pane);
+        borderPane.setBottom(lblStatus);
+
+        Scene scene = new Scene(borderPane, 320, 350);
+        stage.setTitle("TicTacToe Client");
+        stage.setScene(scene);
+        stage.show();
+
+        connectToServer();
+    }
+
+    private void connectToServer() {
+
+        Socket socket = null;
+        try {
+            socket = new Socket(host, 8000);
+
+            fromServer = new DataInputStream(socket.getInputStream());
+
+            toServer = new DataOutputStream(socket.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        new Thread(() -> {
+
+            int player = 0;
+            try {
+                player = fromServer.readInt();
+
+                if (player == PLAYER1) {
+                    myToken = 'X';
+                    otherToken = 'O';
+                    Platform.runLater(() -> {
+
+                        lblTitle.setText("Player 1 with token 'X");
+                        lblStatus.setText("Waiting for player 2 to join");
+                    });
+
+                    fromServer.readInt();
+
+                    Platform.runLater(() ->
+                            lblStatus.setText("Player 2 has joined. I start first"));
+
+                    myTurn = true;
+                } else if (player == PLAYER2) {
+                    myToken = 'O';
+                    otherToken = 'X';
+                    Platform.runLater(() -> {
+                        lblTitle.setText("Player 2 with token 'O'");
+                        lblStatus.setText("Waiting for player 1 to move");
+                    });
+                }
+
+                while (continueToPlay) {
+                    if (player == PLAYER1) {
+                        waitForPlayerAction();
+                        sendMove();
+                        receiveInfoFromServer();
+                    } else if (player == PLAYER2) {
+                        receiveInfoFromServer();
+                        waitForPlayerAction();
+                        sendMove();
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void waitForPlayerAction() throws InterruptedException {
+        while (waiting) {
+            Thread.sleep(100);
+        }
+    waiting = true;
+    }
+
+    private void sendMove() throws IOException {
+        toServer.writeInt(rowSelected);
+        toServer.writeInt(columnSelected);
+    }
+
+    private void receiveInfoFromServer() {
+
+        int status = fromServer.readInt();
+
+        if (status == PLAYER1_WON) {
+            continueToPlay = false;
+            if (myToken == 'X') {
+                Platform.runLater(() -> lblStatus.setText("I Won! (X)"));
+            }
+            else if (myToken == 'O') {
+                Platform.runLater(() -> lblStatus.setText("Player 1 (X) has won!"));
+                receiveMove();
+            }
+        }
+        else if (status == PLAYER2_WON) {
+            continueToPlay = false;
+            if (myToken == 'O') {
+                Platform.runLater(() -> lblStatus.setText("I won! (O)"));
+            }
+            else if (myToken == 'X') {
+                Platform.runLater(() -> lblStatus.setText("Player 2 (O) has won!"));
+                receiveMove();
+            }
+        }
+        else if (status == DRAW) {
+            continueToPlay = false;
+            Platform.runLater(() -> lblStatus.setText("Game is over, no winner!"));
+
+            if (myToken == 'O') {
+                receiveMove();
+            }
+        }
+        else {
+            receiveMove();
+            Platform.runLater(() -> lblStatus.setText("My rurn"));
+            myTurn = true;
+        }
+    }
+
+    private void receiveMove() throws IOException {
+
+        int row = fromServer.readInt();
+        int column = fromServer.readInt();
+
+        Platform.runLater(() -> cell[row][column].setToken(otherToken));
+    }
+
+    public class Cell extends Pane {
+
+        private int row;
+        private int column;
+
+        private char token = ' ';
+
+        public Cell(int row, int column) {
+            this.row = row;
+            this.column = column;
+            this.setPrefSize(2000, 2000);
+            setStyle("-fx-border-color: black");
+            this.setOnMouseClicked(e -> handleMouseClick());
+        }
+
+        public char getToken() {
+            return token;
+        }
+
+        public void setToken(char c) {
+            token = c;
+            repaint();
+        }
+
+        protected void repaint() {
+
+            
+
+        }
+
+    }
+
+
+
+
+}

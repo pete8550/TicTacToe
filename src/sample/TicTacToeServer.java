@@ -3,9 +3,9 @@ package sample;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
-import javafx.stage.Stage;
 import javafx.scene.control.TextArea;
-
+import javafx.stage.Stage;
+import javafx.scene.control.ScrollPane;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -13,7 +13,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Date;
 
-public class TicTacToeServer extends Application implements TicTacToeConstants{
+public class TicTacToeServer extends Application implements TicTacToeConstants {
 
     private int sessionNo = 1;
 
@@ -21,7 +21,7 @@ public class TicTacToeServer extends Application implements TicTacToeConstants{
     public void start(Stage stage) {
         TextArea taLog = new TextArea();
 
-        Scene scene = new Scene(new javafx.scene.control.ScrollPane(taLog), 450, 200);
+        Scene scene = new Scene(new ScrollPane(taLog), 450, 200);
         stage.setTitle("TicTacToe Server");
         stage.setScene(scene);
         stage.show();
@@ -166,7 +166,29 @@ public class TicTacToeServer extends Application implements TicTacToeConstants{
                     return true;
         }
 
+        private boolean isWon(char token) {
 
+            for (int i = 0; i < 3; i++)
+                if ((cell[i][0] == token)
+                        && (cell[i][1] == token)
+                        && (cell[i][2] == token)) {
+                    return true;
+                }
+
+            for (int j = 0; j < 3; j++)
+                if ((cell[0][j] == token)
+                        && (cell[1][j] == token)
+                        && (cell[2][j] == token)) {
+                    return true;
+                }
+
+            if ((cell[0][0] == token)
+                    && (cell[1][1] == token)
+                    && (cell[2][2] == token)) {
+                return true;
+            }
+
+            return false;
+        }
     }
-
 }
