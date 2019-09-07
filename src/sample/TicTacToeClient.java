@@ -3,13 +3,14 @@ package sample;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
-import javafx.scene.control.Cell;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Ellipse;
+import javafx.scene.shape.Line;
 import javafx.stage.Stage;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -20,7 +21,6 @@ public class TicTacToeClient extends Application implements TicTacToeConstants {
     private boolean myTurn = false;
 
     private char myToken = ' ';
-
     private char otherToken = ' ';
 
     private Cell[][] cell = new Cell[3][3];
@@ -42,8 +42,7 @@ public class TicTacToeClient extends Application implements TicTacToeConstants {
     private String host = "localhost";
 
     @Override
-    public void start(Stage stage) throws Exception {
-
+    public void start(Stage stage) {
         GridPane pane = new GridPane();
         for (int i = 0; i < 3; i++)
             for (int j = 0; j <3; j++)
@@ -64,28 +63,25 @@ public class TicTacToeClient extends Application implements TicTacToeConstants {
 
     private void connectToServer() {
 
-        Socket socket = null;
         try {
-            socket = new Socket(host, 8000);
+            Socket socket = new Socket(host, 8000);
 
             fromServer = new DataInputStream(socket.getInputStream());
-
             toServer = new DataOutputStream(socket.getOutputStream());
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
 
         new Thread(() -> {
 
-            int player = 0;
             try {
-                player = fromServer.readInt();
+                int player = fromServer.readInt();
 
                 if (player == PLAYER1) {
                     myToken = 'X';
                     otherToken = 'O';
                     Platform.runLater(() -> {
-
                         lblTitle.setText("Player 1 with token 'X");
                         lblStatus.setText("Waiting for player 2 to join");
                     });
@@ -96,7 +92,8 @@ public class TicTacToeClient extends Application implements TicTacToeConstants {
                             lblStatus.setText("Player 2 has joined. I start first"));
 
                     myTurn = true;
-                } else if (player == PLAYER2) {
+                }
+                else if (player == PLAYER2) {
                     myToken = 'O';
                     otherToken = 'X';
                     Platform.runLater(() -> {
@@ -110,13 +107,15 @@ public class TicTacToeClient extends Application implements TicTacToeConstants {
                         waitForPlayerAction();
                         sendMove();
                         receiveInfoFromServer();
-                    } else if (player == PLAYER2) {
+                    }
+                    else if (player == PLAYER2) {
                         receiveInfoFromServer();
                         waitForPlayerAction();
                         sendMove();
                     }
                 }
-            } catch (IOException e) {
+            }
+            catch (Exception e) {
                 e.printStackTrace();
             }
         }).start();
@@ -134,7 +133,7 @@ public class TicTacToeClient extends Application implements TicTacToeConstants {
         toServer.writeInt(columnSelected);
     }
 
-    private void receiveInfoFromServer() {
+    private void receiveInfoFromServer() throws IOException {
 
         int status = fromServer.readInt();
 
@@ -207,13 +206,44 @@ public class TicTacToeClient extends Application implements TicTacToeConstants {
 
         protected void repaint() {
 
-            
+            if (token == 'X') {
+                Line line1 = new Line(10, 10,
+                        this.getWidth() - 10, this.getHeight() - 10);
+                line1.endXProperty().bind(this.widthProperty().subtract(10));
+                line1.endYProperty().bind(this.heightProperty().subtract(10));
+                Line line2 = new Line(10, this.getHeight() - 10,
+                        this.getWidth() - 10, 10);
+                line2.startYProperty().bind(this.heightProperty().subtract(10));
+                line2.endXProperty().bind(this.widthProperty().subtract(10));
 
+                this.getChildren().addAll(line1, line2);
+            } else if (token == 'O') {
+                Ellipse ellipse = new Ellipse(this.getWidth() / 2,
+                        this.getHeight() / 2, this.getWidth() / 2 - 10,
+                        getHeight() / 2 - 10);
+                ellipse.centerXProperty().bind(
+                        this.widthProperty().divide(2));
+                ellipse.centerYProperty().bind(
+                        this.heightProperty().divide(2));
+                ellipse.radiusXProperty().bind(
+                        this.widthProperty().divide(2).subtract(10));
+                ellipse.radiusYProperty().bind(
+                        this.heightProperty().divide(2).subtract(10));
+                ellipse.setStroke(Color.BLACK);
+                ellipse.setFill(Color.WHITE);
+                getChildren().add(ellipse);
+            }
         }
 
+        private void handleMouseClick() {
+            if (token == ' ' && myTurn) {
+                setToken(myToken);
+                myTurn = false;
+                rowSelected = row;
+                columnSelected = column;
+                lblStatus.setText("Waiting for the other player to move");
+                waiting = false;
+            }
+        }
     }
-
-
-
-
 }
