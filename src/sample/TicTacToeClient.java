@@ -125,7 +125,7 @@ public class TicTacToeClient extends Application implements TicTacToeConstants {
         while (waiting) {
             Thread.sleep(100);
         }
-    waiting = true;
+        waiting = true;
     }
 
     private void sendMove() throws IOException {

@@ -163,7 +163,7 @@ public class TicTacToeServer extends Application implements TicTacToeConstants {
                     if (cell[i][j] == ' ')
                         return false;
 
-                    return true;
+            return true;
         }
 
         private boolean isWon(char token) {
